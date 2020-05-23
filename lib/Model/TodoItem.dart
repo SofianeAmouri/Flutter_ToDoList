@@ -1,33 +1,58 @@
 final String tableName = "todoitem";
-final String colId = '_id';
+final String colId = 'id';
 final String colFkTodo = "fk_todo";
 final String colName = "name";
 final String colIsCompleted = "isCompleted";
 
 class TodoItem{
-  int id;
-  int fkTodo;
-  String name;
-  bool isCompleted;
+  int _numId;
+  int _idTodo;
+  String _name;
+  bool _isCompleted;
 
+  TodoItem();
+
+  //TodoItem.withName(this._name);
+
+  int get numId => _numId;
+  int get idTodo => _idTodo;
+  String get name => _name;
+  bool get isCompleted => _isCompleted;
+
+  set numId(int newNumId) {
+    this._numId = newNumId;
+  }
+
+  set idTodo(int newIdTodo) {
+    this._idTodo = newIdTodo;
+  }
+
+  set name(String newName) {
+    this._name = newName;
+  }
+
+  set isCompleted(bool newIsCompleted) {
+    this._isCompleted = newIsCompleted;
+  }
+
+  // Convert a Note object into a Map object
   Map<String, dynamic> toMap() {
     var map = <String, dynamic>{
-      colFkTodo: fkTodo,
-      colName: name,
-      colIsCompleted: isCompleted
+      colFkTodo: _idTodo,
+      colName: _name,
+      colIsCompleted: _isCompleted
     };
-    if (id != null) {
-      map[colId] = id;
+    if (_numId != null) {
+      map[colId] = _numId;
     }
     return map;
   }
 
-  TodoItem();
-
+  // Extract a Note object from a Map object
   TodoItem.fromMap(Map<String, dynamic> map) {
-    id = map[colId];
-    fkTodo = map[colFkTodo];
-    name = map[colName];
-    isCompleted = map[colIsCompleted];
+    this._numId = map[colId];
+    this._idTodo = map[colFkTodo];
+    this._name = map[colName];
+    this._isCompleted = map[colIsCompleted];
   }
 }

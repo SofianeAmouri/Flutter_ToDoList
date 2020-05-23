@@ -1,103 +1,164 @@
+import 'dart:io';
+
+import 'package:fluttertodolist/Model/Todo.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 class DbHelper{
 
-  //static DbHelper dbHelper;
-  //static Database database;
+  static String colId = "id";
 
   // Table TODO
-  static String TABLE_TODO = "todo";
-  static String COL_TITLE = "title";
-  static String COL_ENDDATE = "endDate";
-  static String COL_IMG = "imgPath";
-  static String COL_BGCOLOR = "color";
+  static String tableTodo = "todo";
+  static String colTitle = "title";
+  static String colEndDate = "endDate";
+  static String colImgPath = "imgPath";
+  static String colBgColor = "bgColor";
 
   // Table TodoItem
-  static String TABLE_TODOITEM = "todoitem";
-  static String COL_FK_TODO = "fk_todo";
-  static String COL_NAME = "name";
-  static String COL_ISCOMPLETED = "isCompleted";
+  static String tableTodoItem = "todoitem";
+  static String colFkTodo = "fk_todo";
+  static String colName = "name";
+  static String colIsCompleted = "isCompleted";
 
   // Table Tags
-  static String TABLE_TAGS = "tags";
-  static String COL_LIBELLE = "libelle";
+  static String tableTags = "tags";
+  static String colLibelle = "libelle";
 
   // Table associative Tags - Todo
-  static String TABLE_TAGTODO = "tagtodo";
-  static String COL_FK_TAG = "fk_tag";
+  static String tableTagTodo = "tagtodo";
+  static String colFkTag = "fk_tag";
   //static String COL_FK_TODO = "fk_todo";
 
 
   // Création de la requête SQL pour créer la table ToDo
-  static final String CREATE_TODO =
-      "CREATE TABLE " + TABLE_TODO + " (" +
-          "ID INTEGER PRIMARY KEY AUTOINCREMENT," +
-          COL_TITLE + " TEXT NOT NULL UNIQUE," +
-          COL_ENDDATE + " DATE," +
-          COL_IMG + " TEXT," +
-          COL_BGCOLOR + " INTEGER " +
+  static final String createTodo =
+      "CREATE TABLE " + tableTodo + " (" +
+          colId + " INTEGER PRIMARY KEY AUTOINCREMENT," +
+          colTitle + " TEXT NOT NULL UNIQUE," +
+          colEndDate + " DATE," +
+          colImgPath + " TEXT," +
+          colBgColor + " INTEGER " +
           ")";
 
   // Création de la requête SQL pour créer la table ToDoItem
-  static final String CREATE_TODO_ITEM =
-      "CREATE TABLE " + TABLE_TODOITEM + " (" +
-          "ID INTEGER PRIMARY KEY AUTOINCREMENT," +
-          COL_NAME + " TEXT," +
-          COL_ISCOMPLETED + " INTEGER," +
-          COL_FK_TODO + " INTEGER NOT NULL," +
-          "UNIQUE(" + COL_FK_TODO + ", " + COL_NAME + ")" +
+  static final String createTodoItem =
+      "CREATE TABLE " + tableTodoItem + " (" +
+          colId + " INTEGER PRIMARY KEY AUTOINCREMENT," +
+          colName + " TEXT," +
+          colIsCompleted + " INTEGER," +
+          colFkTodo + " INTEGER NOT NULL," +
+          "UNIQUE(" + colFkTodo + ", " + colName + ")" +
           ")";
 
   // Création de la requête SQL pour créer la table ToDoItem
-  static final String CREATE_TAGS =
-      "CREATE TABLE " + TABLE_TAGS + " (" +
-          "ID INTEGER PRIMARY KEY AUTOINCREMENT," +
-          COL_LIBELLE + " TEXT NOT NULL UNIQUE" + ")";
+  static final String createTags =
+      "CREATE TABLE " + tableTags + " (" +
+          colId + " INTEGER PRIMARY KEY AUTOINCREMENT," +
+          colLibelle + " TEXT NOT NULL UNIQUE" + ")";
 
   // Création de la requête SQL pour créer la table TagTodo (pour les liens entre les deux tables)
-  static final String CREATE_TAG_TODO =
-      "CREATE TABLE " + TABLE_TAGTODO + " (" +
-          "ID INTEGER PRIMARY KEY AUTOINCREMENT," +
-          COL_FK_TAG + " INTEGER NOT NULL," +
-          COL_FK_TODO + " INTEGER NOT NULL," +
-          "UNIQUE(" + COL_FK_TAG + ", " + COL_FK_TODO + ")" +
+  static final String createTagTodo =
+      "CREATE TABLE " + tableTagTodo + " (" +
+          colId + " INTEGER PRIMARY KEY AUTOINCREMENT," +
+          colFkTag + " INTEGER NOT NULL," +
+          colFkTodo + " INTEGER NOT NULL," +
+          "UNIQUE(" + colFkTag + ", " + colFkTodo + ")" +
           ")";
 
-  static Database _db;
+  static DbHelper _dbHelper; // Singletin DatabaseHelper
+  static Database _db; // Singletin Database
 
-  static int get _version => 1;
+  DbHelper._createInstance(); // Named constructor to create instance of DatabaseHelper
 
-  static Future<void> init() async {
-
-    if (_db != null) { return; }
-
-    try {
-      String _path = await getDatabasesPath() + 'todolist.db';
-      _db = await openDatabase(_path, version: _version, onCreate: onCreate);
+  factory DbHelper() {
+    if(_dbHelper == null) {
+      _dbHelper = DbHelper._createInstance(); // This is executed only once, singleton object
     }
-    catch(ex) {
-      print(ex);
-    }
+    return _dbHelper;
   }
 
-  static void onCreate(Database db, int version) async {
-    await db.execute(CREATE_TODO);
-    await db.execute(CREATE_TODO_ITEM);
-    await db.execute(CREATE_TAGS);
-    await db.execute(CREATE_TAG_TODO);
+  Future<Database> get database async {
+
+    if (_db == null) {
+      _db = await initDatabase();
+    }
+    return _db;
+  }
+
+  Future<Database> initDatabase() async {
+    // Get the directory path for both Android and iOS to store database.
+    Directory directory = await getApplicationDocumentsDirectory();
+    String path = directory.path + 'todolist.db';
+
+    // Open/create the database at a given path
+    var todolistDatabase = await openDatabase(path, version: 1, onCreate: _createDb);
+    return todolistDatabase;
+  }
+
+  void _createDb(Database db, int newVersion) async {
+    await db.execute(createTodo);
+    await db.execute(createTodoItem);
+    await db.execute(createTags);
+    await db.execute(createTagTodo);
   }
 
 
-//  static Future<List<Map<String, dynamic>>> query(String table) async => _db.query(table);
+  /* ***********************************************
+  *  *****             TABLE TODO              *****
+  *  ***********************************************/
 
-//  static Future<int> insert(String table, Model model) async =>
-//      await _db.insert(table, model.toMap());
-//
-//  static Future<int> update(String table, Model model) async =>
-//      await _db.update(table, model.toMap(), where: 'id = ?', whereArgs: [model.id]);
-//
-//  static Future<int> delete(String table, Model model) async =>
-//      await _db.delete(table, where: 'id = ?', whereArgs: [model.id]);
+  // Fetch Operation: Get all todo objects from database
+  Future<List<Map<String, dynamic>>> getTodoMapList() async {
+    Database db = await this.database;
+
+//		var result = await db.rawQuery('SELECT * FROM $todoTable order by $colTitle ASC');
+    var result = await db.query(tableTodo);
+    return result;
+  }
+
+  // Insert Operation: Insert a todo object to database
+  Future<int> insertTodo(Todo todo) async {
+    Database db = await this.database;
+    var result = await db.insert(tableTodo, todo.toMap());
+    return result;
+  }
+
+  // Update Operation: Update a todo object and save it to database
+  Future<int> updateTodo(Todo todo) async {
+    var db = await this.database;
+    var result = await db.update(tableTodo, todo.toMap(), where: '$colId = ?', whereArgs: [todo.numId]);
+    return result;
+  }
 
 
+  // Delete Operation: Delete a todo object from database
+  Future<int> deleteTodo(int id) async {
+    var db = await this.database;
+    int result = await db.rawDelete('DELETE FROM $tableTodo WHERE $colId = $id');
+    return result;
+  }
+
+  // Get number of todo objects in database
+  Future<int> getCount() async {
+    Database db = await this.database;
+    List<Map<String, dynamic>> x = await db.rawQuery('SELECT COUNT (*) from $tableTodo');
+    int result = Sqflite.firstIntValue(x);
+    return result;
+  }
+
+  // Get the 'Map List' [ List<Map> ] and convert it to 'todo List' [ List<Todo> ]
+  Future<List<Todo>> getTodoList() async {
+
+    var todoMapList = await getTodoMapList(); // Get 'Map List' from database
+    int count = todoMapList.length;         // Count the number of map entries in db table
+
+    List<Todo> todoList = List<Todo>();
+    // For loop to create a 'todo List' from a 'Map List'
+    for (int i = 0; i < count; i++) {
+      todoList.add(Todo.fromMap(todoMapList[i]));
+    }
+
+    return todoList;
+  }
 }
