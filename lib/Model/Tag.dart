@@ -1,17 +1,15 @@
 import 'package:fluttertodolist/Model/TodoItem.dart';
 
-final String tableName = "tag";
+final String tableName = "tags";
 final String colId = 'id';
 final String colLibelle = 'libelle';
-final String colIsSelected = 'isSelected';
 
 class Tag {
   int _numId;
   String _libelle;
   bool _isSelected;
 
-  Tag();
-
+  Tag(this._libelle);
 
   int get numId => _numId;
   String get libelle => _libelle;
@@ -32,8 +30,7 @@ class Tag {
   // Convert a Note object into a Map object
   Map<String, dynamic> toMap() {
     var map = <String, dynamic>{
-      colLibelle: _libelle,
-      colIsSelected: _isSelected
+      colLibelle: _libelle
     };
     if (_numId != null) {
       map[colId] = _numId;
@@ -45,6 +42,5 @@ class Tag {
   Tag.fromMap(Map<String, dynamic> map) {
     this._numId = map[colId];
     this._libelle = map[colLibelle];
-    this._isSelected = map[colIsSelected];
   }
 }

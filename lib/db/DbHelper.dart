@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:fluttertodolist/Model/Tag.dart';
 import 'package:fluttertodolist/Model/Todo.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
@@ -160,5 +161,63 @@ class DbHelper{
     }
 
     return todoList;
+  }
+
+  /* ***********************************************
+   *  *****             TABLE TAG              *****
+   *  ***********************************************/
+
+  // Fetch Operation: Get all todo objects from database
+  Future<List<Map<String, dynamic>>> getTagMapList() async {
+    Database db = await this.database;
+
+//		var result = await db.rawQuery('SELECT * FROM $todoTable order by $colTitle ASC');
+    var result = await db.query(tableTags);
+    return result;
+  }
+
+  // Insert Operation: Insert a tag object to database
+  Future<int> insertTag(Tag tag) async {
+    Database db = await this.database;
+    var result = await db.insert(tableTags, tag.toMap());
+    return result;
+  }
+
+  // Update Operation: Update a todo object and save it to database
+  Future<int> updateTag(Tag tag) async {
+    var db = await this.database;
+    var result = await db.update(tableTags, tag.toMap(), where: '$colId = ?', whereArgs: [tag.numId]);
+    return result;
+  }
+
+
+  // Delete Operation: Delete a todo object from database
+  Future<int> deleteTag(int id) async {
+    var db = await this.database;
+    int result = await db.rawDelete('DELETE FROM $tableTags WHERE $colId = $id');
+    return result;
+  }
+
+  // Get number of todo objects in database
+  Future<int> getCountTags() async {
+    Database db = await this.database;
+    List<Map<String, dynamic>> x = await db.rawQuery('SELECT COUNT (*) from $tableTags');
+    int result = Sqflite.firstIntValue(x);
+    return result;
+  }
+
+  // Get the 'Map List' [ List<Map> ] and convert it to 'todo List' [ List<Todo> ]
+  Future<List<Tag>> getTagsList() async {
+
+    var tagMapList = await getTagMapList(); // Get 'Map List' from database
+    int count = tagMapList.length;         // Count the number of map entries in db table
+
+    List<Tag> tagList = List<Tag>();
+    // For loop to create a 'todo List' from a 'Map List'
+    for (int i = 0; i < count; i++) {
+      tagList.add(Tag.fromMap(tagMapList[i]));
+    }
+
+    return tagList;
   }
 }

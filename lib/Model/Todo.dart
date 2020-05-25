@@ -19,9 +19,9 @@ class Todo {
 
   //Todo();
 
-  Todo(this._title, this._endDate);
+  Todo(this._title, this._endDate, this._listItems, this._listTags);
 
-  Todo.withId(this._numId, this._title, this._endDate);
+  Todo.withId(this._numId, this._title, this._endDate, this._listItems, this._listTags);
 
   int get numId => _numId;
   String get title => _title;

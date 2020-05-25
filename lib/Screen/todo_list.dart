@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:fluttertodolist/Model/Tag.dart';
 import 'package:fluttertodolist/Model/Todo.dart';
+import 'package:fluttertodolist/Model/TodoItem.dart';
+import 'package:fluttertodolist/Screen/tags_list.dart';
 import 'package:fluttertodolist/Screen/todo_detail.dart';
 import 'package:fluttertodolist/db/DbHelper.dart';
 import 'package:sqflite/sqflite.dart';
@@ -27,14 +30,24 @@ class TodoListState extends State<TodoList> {
     return Scaffold(
       appBar: AppBar(
         title: Text('ToDoList'),
+        actions: <Widget>[
+          // action button pour les libellés
+          IconButton(
+            icon: Icon(Icons.label_outline),
+            onPressed: () {
+              // Ouvre la nouvelle page
+              navigateToTags();
+            },
+          ),
+        ],
       ),
       body: getTodoListView(),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           debugPrint('FAB clicked');
-          navigateToDetail(Todo('',''), 'Add Todo');
+          navigateToDetail(Todo('', '', new List<TodoItem>(), new List<Tag>()), "Ajout d'une tâche");
         },
-        tooltip: 'Add Todo',
+        tooltip: "Ajout d'une tâche",
         child: Icon(Icons.add),
       ),
     );
@@ -68,7 +81,7 @@ class TodoListState extends State<TodoList> {
             ),
             onTap: () {
               debugPrint("ListTile Tapped");
-              navigateToDetail(this.todoList[position], 'Edit Todo');
+              navigateToDetail(this.todoList[position], "Modification de la tâche");
             },
           ),
         );
@@ -83,7 +96,7 @@ class TodoListState extends State<TodoList> {
   void _delete(BuildContext context, Todo todo) async {
     int result = await databaseHelper.deleteTodo(todo.numId);
     if (result != 0) {
-      _showSnackBar(context, 'Todo Deleted Successfully');
+      _showSnackBar(context, 'Tâche supprimée avec succès');
       updateListView();
     }
   }
@@ -104,6 +117,17 @@ class TodoListState extends State<TodoList> {
     }
   }
 
+  void navigateToTags() async {
+    bool result =
+    await Navigator.push(context, MaterialPageRoute(builder: (context) {
+      return TagsList();
+    }));
+
+    if (result == true) {
+      updateListView();
+    }
+  }
+
   void updateListView() {
     final Future<Database> dbFuture = databaseHelper.initDatabase();
     dbFuture.then((database) {
@@ -116,6 +140,4 @@ class TodoListState extends State<TodoList> {
       });
     });
   }
-
-
 }

@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:fluttertodolist/Model/Tag.dart';
 import 'package:fluttertodolist/Model/Todo.dart';
+import 'package:fluttertodolist/Model/TodoItem.dart';
 import 'package:fluttertodolist/db/DbHelper.dart';
 
 class TodoDetail extends StatefulWidget {
@@ -23,9 +25,12 @@ class TodoDetailState extends State<TodoDetail> {
 
   String appBarTitle;
   Todo todo;
+  List<TodoItem> listItems;
+  List<Tag> listTags;
 
   TextEditingController titleController = TextEditingController();
-  TextEditingController endDateController = TextEditingController();
+  TextEditingController addItemController = TextEditingController();
+  String strEndDate;
 
   TodoDetailState(this.todo, this.appBarTitle);
 
@@ -34,8 +39,13 @@ class TodoDetailState extends State<TodoDetail> {
 
     TextStyle textStyle = Theme.of(context).textTheme.title;
 
+    listItems = List<TodoItem>();
+    listTags = List<Tag>();
+
     titleController.text = todo.title;
-    endDateController.text = todo.endDate;
+    strEndDate = todo.endDate;
+    listItems = todo.listItems;
+    listTags = todo.listTags;
 
     return WillPopScope(
 
@@ -56,12 +66,13 @@ class TodoDetailState extends State<TodoDetail> {
           ),
 
           body: Padding(
-            padding: EdgeInsets.only(top: 15.0, left: 10.0, right: 10.0),
+            padding: EdgeInsets.only(top: 10.0, left: 10.0, right: 10.0),
             child: ListView(
               children: <Widget>[
 
+                // TITRE ***********
                 Padding(
-                  padding: EdgeInsets.only(top: 15.0, bottom: 15.0),
+                  padding: EdgeInsets.only(top: 10.0, bottom: 10.0),
                   child: TextField(
                     controller: titleController,
                     style: textStyle,
@@ -71,43 +82,75 @@ class TodoDetailState extends State<TodoDetail> {
                     },
                     decoration: InputDecoration(
                         labelText: 'Titre',
-                        labelStyle: textStyle,
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(5.0)
-                        )
+                        labelStyle: textStyle
                     ),
                   ),
                 ),
 
+                // DATE DE FIN ************
                 Padding(
-                  padding: EdgeInsets.only(top: 15.0, bottom: 15.0),
+                  padding: EdgeInsets.only(top: 10.0, bottom: 10.0),
+                  child: Row(
+                    children: <Widget>[
+                      Text(
+                          "Date de fin : " + strEndDate
+                      ),
+                      RaisedButton(
+                        child: Icon(Icons.date_range),
+                        onPressed: () {
+                          showDatePicker(
+                              context: context,
+                              initialDate: DateTime.now(),
+                              firstDate: DateTime(DateTime.now().year),
+                              lastDate: DateTime(DateTime.now().year + 10)
+                          ).then((date) {
+                            setState(() {
+                              strEndDate = date.day.toString() + "-" + date.month.toString() + "-" + date.year.toString();
+                              updateEndDate();
+                            });
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+
+                // AJOUT DES ÉlÉMENTS ************
+                Padding(
+                  padding: EdgeInsets.only(top: 10.0, bottom: 10.0),
                   child: TextField(
-                    controller: endDateController,
+                    controller: addItemController,
                     style: textStyle,
-                    onChanged: (value) {
-                      debugPrint('Something changed in EndDate Text Field');
-                      updateDescription();
-                    },
                     decoration: InputDecoration(
-                        labelText: 'Date de fin',
+                        labelText: 'Ajouter un élément...',
                         labelStyle: textStyle,
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(5.0)
+                        suffixIcon: IconButton(
+                            icon: Icon(Icons.add),
+                            onPressed: (){
+                                // Ajoute l'item dans la liste si la longueur du texte est plus grand que 0
+                              if(addItemController.text.length > 0) {
+                                
+                              }
+                                // updateListViewItems()
+                            }
                         )
                     ),
                   ),
                 ),
 
+                // LISTE DES ELEMENTS **************
+
+                // BOUTONS SAUVEGARDER ET SUPPRIMER
                 Padding(
                   padding: EdgeInsets.only(top: 15.0, bottom: 15.0),
                   child: Row(
                     children: <Widget>[
                       Expanded(
                         child: RaisedButton(
-                          color: Theme.of(context).primaryColorDark,
-                          textColor: Theme.of(context).primaryColorLight,
+                          color: Theme.of(context).primaryColor,
+                          textColor: Colors.white,
                           child: Text(
-                            'Save',
+                            'Sauvegarder',
                             textScaleFactor: 1.5,
                           ),
                           onPressed: () {
@@ -123,10 +166,10 @@ class TodoDetailState extends State<TodoDetail> {
 
                       Expanded(
                         child: RaisedButton(
-                          color: Theme.of(context).primaryColorDark,
-                          textColor: Theme.of(context).primaryColorLight,
+                          color: Theme.of(context).primaryColor,
+                          textColor: Colors.white,
                           child: Text(
-                            'Delete',
+                            'Supprimer',
                             textScaleFactor: 1.5,
                           ),
                           onPressed: () {
@@ -154,14 +197,49 @@ class TodoDetailState extends State<TodoDetail> {
     Navigator.pop(context, true);
   }
 
-  // Update the title of todo object
+  // Met à jour le titre d'une tâche
   void updateTitle(){
     todo.title = titleController.text;
   }
 
-  // Update the description of todo object
-  void updateDescription() {
-    todo.endDate = endDateController.text;
+  // Met à jour la date de fin d'une tâche
+  void updateEndDate() {
+    todo.endDate = strEndDate;
+  }
+
+  // Met à jour la liste des tâches à faire
+  void updateListItems(){
+
+  }
+
+  ListView getListViewItems(){
+    return ListView.builder(
+      itemCount: 0,
+      itemBuilder: (BuildContext context, int position) {
+        return Card(
+          color: Colors.white,
+          elevation: 2.0,
+          child: ListTile(
+            leading: CircleAvatar(
+                backgroundColor: Colors.amber
+            ),
+            title: Text(this.listItems[position].name,
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                GestureDetector(
+                  child: Icon(Icons.delete,color: Colors.red,),
+                  onTap: () {
+
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   // Save data to database
@@ -169,7 +247,6 @@ class TodoDetailState extends State<TodoDetail> {
 
     moveToLastScreen();
 
-    //todo.date = DateFormat.yMMMd().format(DateTime.now());
     int result;
     if (todo.numId != null) {  // Case 1: Update operation
       result = await helper.updateTodo(todo);
@@ -184,7 +261,6 @@ class TodoDetailState extends State<TodoDetail> {
     }
 
   }
-
 
   void _delete() async {
 
