@@ -69,7 +69,7 @@ class TagsListState extends State<TagsList> {
 
   ListView getTagsListView() {
     return ListView.builder(
-      itemCount: count,
+      itemCount: this.tagsList.length,
       itemBuilder: (BuildContext context, int position) {
         return Card(
           color: Colors.white,
@@ -88,7 +88,7 @@ class TagsListState extends State<TagsList> {
                   },
                 ),
                 GestureDetector(
-                  child: Icon(Icons.delete, color: Theme.of(context).primaryColor),
+                  child: Icon(Icons.delete, color: Colors.red),
                   onTap: () {
                     _delete(context, tagsList[position]);
                   },
@@ -133,7 +133,6 @@ class TagsListState extends State<TagsList> {
       tagsListFuture.then((tagList) {
         setState(() {
           this.tagsList = tagList;
-          this.count = tagList.length;
         });
       });
     });

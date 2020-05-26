@@ -239,7 +239,7 @@ class DbHelper{
   Future<List<Map<String, dynamic>>> getTodoItemMapList(int idTodo) async {
     Database db = await this.database;
 
-		var result = await db.rawQuery('SELECT * FROM $tableTodoItem WHERE $colFkTodo = $idTodo');
+		var result = await db.rawQuery('SELECT * FROM $tableTodoItem WHERE $colFkTodo = $idTodo ORDER BY $colId ASC');
     //var result = await db.query(tableTodoItem);
     return result;
   }

@@ -8,7 +8,7 @@ class TodoItem{
   int _numId;
   int _idTodo;
   String _name;
-  bool _isCompleted;
+  int _isCompleted; // 1 = true, 0 = false
 
   TodoItem(this._name);
 
@@ -17,7 +17,7 @@ class TodoItem{
   int get numId => _numId;
   int get idTodo => _idTodo;
   String get name => _name;
-  bool get isCompleted => _isCompleted;
+  int get isCompleted => _isCompleted;
 
   set numId(int newNumId) {
     this._numId = newNumId;
@@ -31,7 +31,7 @@ class TodoItem{
     this._name = newName;
   }
 
-  set isCompleted(bool newIsCompleted) {
+  set isCompleted(int newIsCompleted) {
     this._isCompleted = newIsCompleted;
   }
 

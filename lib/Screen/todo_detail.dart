@@ -43,23 +43,24 @@ class TodoDetailState extends State<TodoDetail> {
 
     TextStyle textStyle = Theme.of(context).textTheme.title;
 
-    // Mode édition pour gérer l'enregistrement dans la BD
-    if(todo.numId == null) {
-      bEditMode = false; // signifie que la tâche ne possède pas encore de donnée dans la BDD, donc les items ne peuvent pas être enregistré direct dans la BD
-      this.listItems = List<TodoItem>();
-      this.listTags = List<Tag>();
-    }
-    else{
-      bEditMode = true;
-      this.listItems = todo.listItems;
-      this.listTags = todo.listTags;
-      updateListItems();
-    }
+    // Initialise les listes
+    this.listItems = List<TodoItem>();
+    this.listTags = List<Tag>();
 
+    // Récupère les infos de la tâche
     titleController.text = todo.title;
     strEndDate = todo.endDate;
     listItems = todo.listItems;
     listTags = todo.listTags;
+
+    // Mode édition pour gérer l'enregistrement dans la BD
+    if(todo.numId == null) {
+      bEditMode = false; // signifie que la tâche ne possède pas encore de donnée dans la BDD, donc les items ne peuvent pas être enregistré direct dans la BD
+    }
+    else{
+      bEditMode = true;
+      updateListItems();
+    }
 
     return WillPopScope(
 
@@ -218,28 +219,15 @@ class TodoDetailState extends State<TodoDetail> {
   }
 
   // Met à jour la liste des tâches à faire
-  void updateListItems(){
-    if(bEditMode){
-      final Future<Database> dbFuture = databaseHelper.initDatabase();
-      dbFuture.then((database) {
-        Future<List<TodoItem>> tagsListFuture = databaseHelper.getTodoItemList(todo.numId);
-        tagsListFuture.then((todoItemList) {
-          setState(() {
-            this.listItems = todoItemList;
-            this.countTodoItems = this.listItems.length;
-          });
-        });
-      });
-    } else {
-      setState(() {
-        this.countTodoItems = this.listItems.length;
-      });
-    }
+  void updateListItems() {
+    setState(() {
+      this.listItems = todo.listItems;
+    });
   }
 
   ListView getListViewItems(){
     return ListView.builder(
-      itemCount: countTodoItems,
+      itemCount: listItems.length,
       itemBuilder: (BuildContext context, int position) {
         return Card(
           color: Colors.white,
@@ -313,32 +301,31 @@ class TodoDetailState extends State<TodoDetail> {
     }
   }
 
+  // Méthode qui permet de supprimer un item (une tâche à faire)
   void _deleteTodoItem(BuildContext context, TodoItem todoItem, int pos) async {
     if(bEditMode){
-      int result = await databaseHelper.deleteTag(todoItem.numId);
+      int result = await databaseHelper.deleteTodoItem(todoItem.numId);
       if (result != 0) {
         _showSnackBar(context, 'Item supprimé avec succès');
-        updateListItems();
       }
-    } else {
-      this.listItems.removeAt(pos);
-      updateListItems();
     }
+    this.listItems.removeAt(pos);
+    updateListItems();
   }
 
+  // Méthode qui permet d'ajouter un item (tâche à faire)
   void _addTodoItem(BuildContext context, TodoItem todoItem) async {
+    todoItem.isCompleted = 0;
+
     if(bEditMode){
       todoItem.idTodo = todo.numId;
-      todoItem.isCompleted = false;
       int result = await databaseHelper.insertTodoItem(todoItem);
       if (result != 0) {
-        _showSnackBar(context, 'Item ajouté avec succès');
-        updateListItems();
+        //_showSnackBar(context, 'Item ajouté avec succès');
       }
-    } else {
-      listItems.add(todoItem);
-      updateListItems();
     }
+    todo.listItems.add(todoItem);
+    updateListItems();
   }
 
   void _showSnackBar(BuildContext context, String message) {
