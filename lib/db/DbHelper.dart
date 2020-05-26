@@ -114,8 +114,16 @@ class DbHelper{
   Future<List<Map<String, dynamic>>> getTodoMapList() async {
     Database db = await this.database;
 
-//		var result = await db.rawQuery('SELECT * FROM $todoTable order by $colTitle ASC');
-    var result = await db.query(tableTodo);
+		var result = await db.rawQuery('SELECT * FROM $tableTodo order by $colId ASC');
+    //var result = await db.query(tableTodo);
+    return result;
+  }
+
+  Future<List<Map<String, dynamic>>> getTodoMap(String title) async {
+    Database db = await this.database;
+
+		var result = await db.rawQuery('SELECT * FROM $tableTodo WHERE $colTitle = $title');
+//    var result = await db.query(tableTodo);
     return result;
   }
 
@@ -137,6 +145,7 @@ class DbHelper{
   // Delete Operation: Delete a todo object from database
   Future<int> deleteTodo(int id) async {
     var db = await this.database;
+    int resTodoItem = await db.rawDelete('DELETE FROM $tableTodoItem WHERE $colFkTodo = $id'); // supprime tous les items liés à la tâche
     int result = await db.rawDelete('DELETE FROM $tableTodo WHERE $colId = $id');
     return result;
   }
@@ -149,12 +158,14 @@ class DbHelper{
     return result;
   }
 
-  // Get number of todo objects in database
-  Future<int> getTodoByName(String title) async {
-    Database db = await this.database;
-    List<Map<String, dynamic>> x = await db.rawQuery('SELECT * from $tableTodo WHERE $colTitle = $title');
-    int result = Sqflite.firstIntValue(x);
-    return result;
+  // Récupère une tâche grâce à son nom
+  Future<Todo> getTodoByTitle(String title) async {
+    var todoMapList = await getTodoMapList();
+    int count = todoMapList.length;
+
+    Todo todo = Todo.fromMap(todoMapList.last);
+
+    return todo;
   }
 
   // Get the 'Map List' [ List<Map> ] and convert it to 'todo List' [ List<Todo> ]
@@ -167,7 +178,7 @@ class DbHelper{
     // For loop to create a 'todo List' from a 'Map List'
     for (int i = 0; i < count; i++) {
       todoList.add(Todo.fromMap(todoMapList[i]));
-      todoList[i].listItems = await getTodoItemList(todoList[i].numId);
+      todoList[i].listItems = await getTodoItemList(todoList[i].numId); // ajoute la liste des tâches à faire pour chaque tâche
     }
 
     return todoList;

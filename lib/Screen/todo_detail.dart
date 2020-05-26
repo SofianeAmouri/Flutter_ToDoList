@@ -178,24 +178,24 @@ class TodoDetailState extends State<TodoDetail> {
                       ),
                     ),
 
-                    Container(width: 5.0,),
+//                    Container(width: 5.0,),
 
-                    Expanded(
-                      child: RaisedButton(
-                        color: Theme.of(context).primaryColor,
-                        textColor: Colors.white,
-                        child: Text(
-                          'Supprimer',
-                          textScaleFactor: 1.5,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            debugPrint("Delete button clicked");
-                            _delete();
-                          });
-                        },
-                      ),
-                    ),
+//                    Expanded(
+//                      child: RaisedButton(
+//                        color: Theme.of(context).primaryColor,
+//                        textColor: Colors.white,
+//                        child: Text(
+//                          'Supprimer',
+//                          textScaleFactor: 1.5,
+//                        ),
+//                        onPressed: () {
+//                          setState(() {
+//                            debugPrint("Delete button clicked");
+//                            _delete();
+//                          });
+//                        },
+//                      ),
+//                    ),
                   ],
                 ),
               ),
@@ -271,8 +271,15 @@ class TodoDetailState extends State<TodoDetail> {
         result = await databaseHelper.insertTodo(todo);
       }
 
-      if(!bEditMode){
-
+      if(!bEditMode && this.listItems.length != 0){
+        // récupère la tâche que l'on vient de créer pour avoir l'ID
+        Todo todoDB = await databaseHelper.getTodoByTitle(todo.title);
+        
+        // Permet d'ajouter la liste des tâches à faire dans la BD
+        for(int i = 0; i < this.listItems.length; i++){
+          this.listItems[i].idTodo = todoDB.numId;
+          int resItems = await databaseHelper.insertTodoItem(this.listItems[i]);
+        }
       }
 
       if (result != 0) {  // Success
@@ -281,7 +288,7 @@ class TodoDetailState extends State<TodoDetail> {
         _showAlertDialog('Status', 'Problem Saving Todo');
       }
     } else {
-      _showAlertDialog("Aucune valeur n'a été entrée", "Veuillez saisir au minimum le titre pour sauvegarder.");
+      _showAlertDialog("Status", "Veuillez saisir au minimum le titre pour sauvegarder.");
     }
   }
 
