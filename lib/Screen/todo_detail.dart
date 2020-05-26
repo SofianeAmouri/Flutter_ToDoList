@@ -29,8 +29,8 @@ class TodoDetailState extends State<TodoDetail> {
   String appBarTitle;
   Todo todo;
   List<TodoItem> listItems;
-  int countTodoItems = 0;
   List<Tag> listTags;
+  List<Tag> listAllTags;
 
   TextEditingController titleController = TextEditingController();
   TextEditingController addItemController = TextEditingController();
@@ -46,6 +46,8 @@ class TodoDetailState extends State<TodoDetail> {
     // Initialise les listes
     this.listItems = List<TodoItem>();
     this.listTags = List<Tag>();
+    this.listAllTags = List<Tag>();
+    uploadListTags();
 
     // Récupère les infos de la tâche
     titleController.text = todo.title;
@@ -78,6 +80,23 @@ class TodoDetailState extends State<TodoDetail> {
                   moveToLastScreen();
                 }
             ),
+            actions: <Widget>[
+
+              // action button pour récupérer une photo de la gallerie
+              IconButton(
+                icon: Icon(Icons.add_a_photo),
+                onPressed: () {
+
+                },
+              ),
+              // action button pour les libellés
+              IconButton(
+                icon: Icon(Icons.label_outline),
+                onPressed: () {
+                  _showSelectTags();
+                },
+              ),
+            ],
           ),
 
           body: Column(
@@ -225,6 +244,7 @@ class TodoDetailState extends State<TodoDetail> {
     });
   }
 
+  // ListView qui permet d'afficher la listes des tâches (items)
   ListView getListViewItems(){
     return ListView.builder(
       itemCount: listItems.length,
@@ -242,7 +262,7 @@ class TodoDetailState extends State<TodoDetail> {
                 GestureDetector(
                   child: Icon(Icons.edit, color: Theme.of(context).primaryColor),
                   onTap: () {
-                    //_deleteTodoItem(context, listItems[position], position);
+                    // Bouton pour la modification
                   },
                 ),
                 GestureDetector(
@@ -335,6 +355,20 @@ class TodoDetailState extends State<TodoDetail> {
     updateListItems();
   }
 
+  void _selectTag(){
+
+  }
+
+  void uploadListTags(){
+    final Future<Database> dbFuture = databaseHelper.initDatabase();
+    dbFuture.then((database) {
+      Future<List<Tag>> tagsListFuture = databaseHelper.getTagsList();
+      tagsListFuture.then((tagList) {
+        this.listAllTags = tagList;
+      });
+    });
+  }
+
   void _showSnackBar(BuildContext context, String message) {
     final snackBar = SnackBar(content: Text(message));
     Scaffold.of(context).showSnackBar(snackBar);
@@ -349,6 +383,50 @@ class TodoDetailState extends State<TodoDetail> {
     showDialog(
         context: context,
         builder: (_) => alertDialog
+    );
+  }
+
+  void _showSelectTags() {
+    //uploadListTags();
+    AlertDialog alertDialog = AlertDialog(
+      title: Text("Libellés"),
+      content: setupAlertDialogTag(),
+    );
+    showDialog(
+        context: context,
+        builder: (_) => alertDialog
+    );
+  }
+
+  Widget setupAlertDialogTag() {
+    return Container(
+      height: 300.0, // Change as per your requirement
+      width: 300.0, // Change as per your requirement
+      child: ListView.builder(
+        itemCount: this.listAllTags.length,
+        itemBuilder: (BuildContext context, int position) {
+          return Card(
+            color: Colors.white,
+            elevation: 2.0,
+            child: ListTile(
+              leading: Icon(Icons.label_outline, color: Theme.of(context).primaryColor),
+              title: Text(this.listAllTags[position].libelle,
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  GestureDetector(
+                    child: Icon(Icons.check_box_outline_blank, color: Colors.red),
+                    onTap: () {
+                      //_deleteTodoItem(context, listItems[position], position);
+                    },
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }
