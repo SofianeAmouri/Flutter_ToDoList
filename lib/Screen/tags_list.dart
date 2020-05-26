@@ -14,7 +14,6 @@ class TagsList extends StatefulWidget {
 class TagsListState extends State<TagsList> {
   DbHelper databaseHelper = DbHelper();
 
-  List<String> litems = [];
   TextEditingController tagController = new TextEditingController();
 
   List<Tag> tagsList;
@@ -68,16 +67,6 @@ class TagsListState extends State<TagsList> {
     );
   }
 
-  ListView getTest() {
-    return ListView.builder
-      (
-        itemCount: tagsList.length,
-        itemBuilder: (BuildContext ctxt, int Index) {
-          return new Text(tagsList[Index].libelle);
-        }
-    );
-  }
-
   ListView getTagsListView() {
     return ListView.builder(
       itemCount: count,
@@ -93,16 +82,19 @@ class TagsListState extends State<TagsList> {
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 GestureDetector(
-                  child: Icon(Icons.delete,color: Colors.red,),
+                  child: Icon(Icons.edit, color: Theme.of(context).primaryColor),
+                  onTap: () {
+                    //Action pour la modification
+                  },
+                ),
+                GestureDetector(
+                  child: Icon(Icons.delete, color: Theme.of(context).primaryColor),
                   onTap: () {
                     _delete(context, tagsList[position]);
                   },
                 ),
               ],
             ),
-            onTap: () {
-
-            },
           ),
         );
       },
@@ -146,6 +138,4 @@ class TagsListState extends State<TagsList> {
       });
     });
   }
-
-
 }

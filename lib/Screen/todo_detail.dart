@@ -4,6 +4,7 @@ import 'package:fluttertodolist/Model/Tag.dart';
 import 'package:fluttertodolist/Model/Todo.dart';
 import 'package:fluttertodolist/Model/TodoItem.dart';
 import 'package:fluttertodolist/db/DbHelper.dart';
+import 'package:sqflite/sqflite.dart';
 
 class TodoDetail extends StatefulWidget {
 
@@ -21,11 +22,14 @@ class TodoDetail extends StatefulWidget {
 
 class TodoDetailState extends State<TodoDetail> {
 
-  DbHelper helper = DbHelper();
+  DbHelper databaseHelper = DbHelper();
+
+  bool bEditMode;
 
   String appBarTitle;
   Todo todo;
   List<TodoItem> listItems;
+  int countTodoItems = 0;
   List<Tag> listTags;
 
   TextEditingController titleController = TextEditingController();
@@ -39,8 +43,18 @@ class TodoDetailState extends State<TodoDetail> {
 
     TextStyle textStyle = Theme.of(context).textTheme.title;
 
-    listItems = List<TodoItem>();
-    listTags = List<Tag>();
+    // Mode édition pour gérer l'enregistrement dans la BD
+    if(todo.numId == null) {
+      bEditMode = false; // signifie que la tâche ne possède pas encore de donnée dans la BDD, donc les items ne peuvent pas être enregistré direct dans la BD
+      this.listItems = List<TodoItem>();
+      this.listTags = List<Tag>();
+    }
+    else{
+      bEditMode = true;
+      this.listItems = todo.listItems;
+      this.listTags = todo.listTags;
+      updateListItems();
+    }
 
     titleController.text = todo.title;
     strEndDate = todo.endDate;
@@ -65,59 +79,56 @@ class TodoDetailState extends State<TodoDetail> {
             ),
           ),
 
-          body: Padding(
-            padding: EdgeInsets.only(top: 10.0, left: 10.0, right: 10.0),
-            child: ListView(
-              children: <Widget>[
+          body: Column(
+            children: <Widget>[
+              // TITRE *****************
+              Padding(
+                padding: EdgeInsets.only(top: 10.0, bottom: 10.0, left: 10.0, right: 10.0),
+                child: TextField(
+                  controller: titleController,
+                  style: textStyle,
+                  onChanged: (value) {
+                    debugPrint('Something changed in Title Text Field');
+                    updateTitle();
+                  },
+                  decoration: InputDecoration(
+                      labelText: 'Titre',
+                      labelStyle: textStyle
+                  ),
+                ),
+              ),
 
-                // TITRE ***********
-                Padding(
-                  padding: EdgeInsets.only(top: 10.0, bottom: 10.0),
-                  child: TextField(
-                    controller: titleController,
-                    style: textStyle,
-                    onChanged: (value) {
-                      debugPrint('Something changed in Title Text Field');
-                      updateTitle();
-                    },
-                    decoration: InputDecoration(
-                        labelText: 'Titre',
-                        labelStyle: textStyle
+              // DATE DE FIN ****************
+              Padding(
+                padding: EdgeInsets.only(top: 10.0, bottom: 10.0, left: 10.0, right: 10.0),
+                child: Row(
+                  children: <Widget>[
+                    Text(
+                        "Date de fin : " + strEndDate
                     ),
-                  ),
-                ),
-
-                // DATE DE FIN ************
-                Padding(
-                  padding: EdgeInsets.only(top: 10.0, bottom: 10.0),
-                  child: Row(
-                    children: <Widget>[
-                      Text(
-                          "Date de fin : " + strEndDate
-                      ),
-                      RaisedButton(
-                        child: Icon(Icons.date_range),
-                        onPressed: () {
-                          showDatePicker(
-                              context: context,
-                              initialDate: DateTime.now(),
-                              firstDate: DateTime(DateTime.now().year),
-                              lastDate: DateTime(DateTime.now().year + 10)
-                          ).then((date) {
-                            setState(() {
-                              strEndDate = date.day.toString() + "-" + date.month.toString() + "-" + date.year.toString();
-                              updateEndDate();
-                            });
+                    RaisedButton(
+                      child: Icon(Icons.date_range),
+                      onPressed: () {
+                        showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime(DateTime.now().year),
+                            lastDate: DateTime(DateTime.now().year + 10)
+                        ).then((date) {
+                          setState(() {
+                            strEndDate = date.day.toString() + "-" + date.month.toString() + "-" + date.year.toString();
+                            updateEndDate();
                           });
-                        },
-                      ),
-                    ],
-                  ),
+                        });
+                      },
+                    ),
+                  ],
                 ),
+              ),
 
-                // AJOUT DES ÉlÉMENTS ************
-                Padding(
-                  padding: EdgeInsets.only(top: 10.0, bottom: 10.0),
+              // AJOUT DES ÉlÉMENTS ****************
+              Padding(
+                  padding: EdgeInsets.only(top: 10.0, bottom: 10.0, left: 10.0, right: 10.0),
                   child: TextField(
                     controller: addItemController,
                     style: textStyle,
@@ -127,69 +138,68 @@ class TodoDetailState extends State<TodoDetail> {
                         suffixIcon: IconButton(
                             icon: Icon(Icons.add),
                             onPressed: (){
-                                // Ajoute l'item dans la liste si la longueur du texte est plus grand que 0
+                              // Ajoute l'item dans la liste si la longueur du texte est plus grand que 0
                               if(addItemController.text.length > 0) {
-                                
+                                _addTodoItem(context, new TodoItem(addItemController.text));
+                                addItemController.clear();
+                                updateListItems();
                               }
-                                // updateListViewItems()
                             }
                         )
                     ),
-                  ),
+                  )
+              ),
+
+              // LISTE DES ELEMENTS ********************
+                Expanded(
+                    child: getListViewItems()
                 ),
 
-                // LISTE DES ELEMENTS **************
-
-                // BOUTONS SAUVEGARDER ET SUPPRIMER
-                Padding(
-                  padding: EdgeInsets.only(top: 15.0, bottom: 15.0),
-                  child: Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: RaisedButton(
-                          color: Theme.of(context).primaryColor,
-                          textColor: Colors.white,
-                          child: Text(
-                            'Sauvegarder',
-                            textScaleFactor: 1.5,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              debugPrint("Save button clicked");
-                              _save();
-                            });
-                          },
+              // BOUTONS SAUVEGARDER ET SUPPRIMER *********************
+              Padding(
+                padding: EdgeInsets.only(top: 15.0, bottom: 10.0, left: 10.0, right: 10.0),
+                child: Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: RaisedButton(
+                        color: Theme.of(context).primaryColor,
+                        textColor: Colors.white,
+                        child: Text(
+                          'Sauvegarder',
+                          textScaleFactor: 1.5,
                         ),
+                        onPressed: () {
+                          setState(() {
+                            debugPrint("Save button clicked");
+                            _save();
+                          });
+                        },
                       ),
+                    ),
 
-                      Container(width: 5.0,),
+                    Container(width: 5.0,),
 
-                      Expanded(
-                        child: RaisedButton(
-                          color: Theme.of(context).primaryColor,
-                          textColor: Colors.white,
-                          child: Text(
-                            'Supprimer',
-                            textScaleFactor: 1.5,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              debugPrint("Delete button clicked");
-                              _delete();
-                            });
-                          },
+                    Expanded(
+                      child: RaisedButton(
+                        color: Theme.of(context).primaryColor,
+                        textColor: Colors.white,
+                        child: Text(
+                          'Supprimer',
+                          textScaleFactor: 1.5,
                         ),
+                        onPressed: () {
+                          setState(() {
+                            debugPrint("Delete button clicked");
+                            _delete();
+                          });
+                        },
                       ),
-
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-
-
-              ],
-            ),
-          ),
-
+              ),
+            ],
+          )
         ));
   }
 
@@ -209,29 +219,48 @@ class TodoDetailState extends State<TodoDetail> {
 
   // Met à jour la liste des tâches à faire
   void updateListItems(){
-
+    if(bEditMode){
+      final Future<Database> dbFuture = databaseHelper.initDatabase();
+      dbFuture.then((database) {
+        Future<List<TodoItem>> tagsListFuture = databaseHelper.getTodoItemList(todo.numId);
+        tagsListFuture.then((todoItemList) {
+          setState(() {
+            this.listItems = todoItemList;
+            this.countTodoItems = this.listItems.length;
+          });
+        });
+      });
+    } else {
+      setState(() {
+        this.countTodoItems = this.listItems.length;
+      });
+    }
   }
 
   ListView getListViewItems(){
     return ListView.builder(
-      itemCount: 0,
+      itemCount: countTodoItems,
       itemBuilder: (BuildContext context, int position) {
         return Card(
           color: Colors.white,
           elevation: 2.0,
           child: ListTile(
-            leading: CircleAvatar(
-                backgroundColor: Colors.amber
-            ),
+            leading: Icon(Icons.chevron_right, color: Theme.of(context).primaryColor),
             title: Text(this.listItems[position].name,
                 style: TextStyle(fontWeight: FontWeight.bold)),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 GestureDetector(
-                  child: Icon(Icons.delete,color: Colors.red,),
+                  child: Icon(Icons.edit, color: Theme.of(context).primaryColor),
                   onTap: () {
-
+                    //_deleteTodoItem(context, listItems[position], position);
+                  },
+                ),
+                GestureDetector(
+                  child: Icon(Icons.delete,color: Colors.red),
+                  onTap: () {
+                    _deleteTodoItem(context, listItems[position], position);
                   },
                 ),
               ],
@@ -244,26 +273,31 @@ class TodoDetailState extends State<TodoDetail> {
 
   // Save data to database
   void _save() async {
+    if (titleController.text.length > 0) {
+      moveToLastScreen();
 
-    moveToLastScreen();
+      int result;
+      if (todo.numId != null) {  // Case 1: Update operation
+        result = await databaseHelper.updateTodo(todo);
+      } else { // Case 2: Insert Operation
+        result = await databaseHelper.insertTodo(todo);
+      }
 
-    int result;
-    if (todo.numId != null) {  // Case 1: Update operation
-      result = await helper.updateTodo(todo);
-    } else { // Case 2: Insert Operation
-      result = await helper.insertTodo(todo);
+      if(!bEditMode){
+
+      }
+
+      if (result != 0) {  // Success
+        _showAlertDialog('Status', 'Todo Saved Successfully');
+      } else {  // Failure
+        _showAlertDialog('Status', 'Problem Saving Todo');
+      }
+    } else {
+      _showAlertDialog("Aucune valeur n'a été entrée", "Veuillez saisir au minimum le titre pour sauvegarder.");
     }
-
-    if (result != 0) {  // Success
-      _showAlertDialog('Status', 'Todo Saved Successfully');
-    } else {  // Failure
-      _showAlertDialog('Status', 'Problem Saving Todo');
-    }
-
   }
 
   void _delete() async {
-
     moveToLastScreen();
 
     if (todo.numId == null) {
@@ -271,12 +305,45 @@ class TodoDetailState extends State<TodoDetail> {
       return;
     }
 
-    int result = await helper.deleteTodo(todo.numId);
+    int result = await databaseHelper.deleteTodo(todo.numId);
     if (result != 0) {
       _showAlertDialog('Status', 'Todo Deleted Successfully');
     } else {
       _showAlertDialog('Status', 'Error Occured while Deleting Todo');
     }
+  }
+
+  void _deleteTodoItem(BuildContext context, TodoItem todoItem, int pos) async {
+    if(bEditMode){
+      int result = await databaseHelper.deleteTag(todoItem.numId);
+      if (result != 0) {
+        _showSnackBar(context, 'Item supprimé avec succès');
+        updateListItems();
+      }
+    } else {
+      this.listItems.removeAt(pos);
+      updateListItems();
+    }
+  }
+
+  void _addTodoItem(BuildContext context, TodoItem todoItem) async {
+    if(bEditMode){
+      todoItem.idTodo = todo.numId;
+      todoItem.isCompleted = false;
+      int result = await databaseHelper.insertTodoItem(todoItem);
+      if (result != 0) {
+        _showSnackBar(context, 'Item ajouté avec succès');
+        updateListItems();
+      }
+    } else {
+      listItems.add(todoItem);
+      updateListItems();
+    }
+  }
+
+  void _showSnackBar(BuildContext context, String message) {
+    final snackBar = SnackBar(content: Text(message));
+    Scaffold.of(context).showSnackBar(snackBar);
   }
 
   void _showAlertDialog(String title, String message) {
@@ -290,5 +357,4 @@ class TodoDetailState extends State<TodoDetail> {
         builder: (_) => alertDialog
     );
   }
-
 }

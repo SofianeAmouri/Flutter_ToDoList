@@ -10,7 +10,7 @@ class TodoItem{
   String _name;
   bool _isCompleted;
 
-  TodoItem();
+  TodoItem(this._name);
 
   //TodoItem.withName(this._name);
 

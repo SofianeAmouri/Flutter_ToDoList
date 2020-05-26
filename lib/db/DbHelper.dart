@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:fluttertodolist/Model/Tag.dart';
 import 'package:fluttertodolist/Model/Todo.dart';
+import 'package:fluttertodolist/Model/TodoItem.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -148,6 +149,14 @@ class DbHelper{
     return result;
   }
 
+  // Get number of todo objects in database
+  Future<int> getTodoByName(String title) async {
+    Database db = await this.database;
+    List<Map<String, dynamic>> x = await db.rawQuery('SELECT * from $tableTodo WHERE $colTitle = $title');
+    int result = Sqflite.firstIntValue(x);
+    return result;
+  }
+
   // Get the 'Map List' [ List<Map> ] and convert it to 'todo List' [ List<Todo> ]
   Future<List<Todo>> getTodoList() async {
 
@@ -158,6 +167,7 @@ class DbHelper{
     // For loop to create a 'todo List' from a 'Map List'
     for (int i = 0; i < count; i++) {
       todoList.add(Todo.fromMap(todoMapList[i]));
+      todoList[i].listItems = await getTodoItemList(todoList[i].numId);
     }
 
     return todoList;
@@ -219,5 +229,63 @@ class DbHelper{
     }
 
     return tagList;
+  }
+
+  /* ***********************************************
+   *  *****             TABLE TODOITEM              *****
+   *  ***********************************************/
+
+  // Fetch Operation: Get all todo objects from database
+  Future<List<Map<String, dynamic>>> getTodoItemMapList(int idTodo) async {
+    Database db = await this.database;
+
+		var result = await db.rawQuery('SELECT * FROM $tableTodoItem WHERE $colFkTodo = $idTodo');
+    //var result = await db.query(tableTodoItem);
+    return result;
+  }
+
+  // Insert Operation: Insert a tag object to database
+  Future<int> insertTodoItem(TodoItem todoItem) async {
+    Database db = await this.database;
+    var result = await db.insert(tableTodoItem, todoItem.toMap());
+    return result;
+  }
+
+  // Update Operation: Update a todo object and save it to database
+  Future<int> updateTodoItem(TodoItem todoItem) async {
+    var db = await this.database;
+    var result = await db.update(tableTodoItem, todoItem.toMap(), where: '$colId = ?', whereArgs: [todoItem.numId]);
+    return result;
+  }
+
+
+  // Delete Operation: Delete a todo object from database
+  Future<int> deleteTodoItem(int id) async {
+    var db = await this.database;
+    int result = await db.rawDelete('DELETE FROM $tableTodoItem WHERE $colId = $id');
+    return result;
+  }
+
+  // Get number of todo objects in database
+  Future<int> getCountTodoItem() async {
+    Database db = await this.database;
+    List<Map<String, dynamic>> x = await db.rawQuery('SELECT COUNT (*) from $tableTodoItem');
+    int result = Sqflite.firstIntValue(x);
+    return result;
+  }
+
+  // Get the 'Map List' [ List<Map> ] and convert it to 'todo List' [ List<Todo> ]
+  Future<List<TodoItem>> getTodoItemList(int idTodo) async {
+
+    var todoItemMapList = await getTodoItemMapList(idTodo); // Get 'Map List' from database
+    int count = todoItemMapList.length;         // Count the number of map entries in db table
+
+    List<TodoItem> todoItemList = List<TodoItem>();
+    // For loop to create a 'todo List' from a 'Map List'
+    for (int i = 0; i < count; i++) {
+      todoItemList.add(TodoItem.fromMap(todoItemMapList[i]));
+    }
+
+    return todoItemList;
   }
 }

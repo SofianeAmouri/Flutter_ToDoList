@@ -68,6 +68,7 @@ class TodoListState extends State<TodoList> {
             ),
             title: Text(this.todoList[position].title,
                 style: TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text(this.todoList[position].endDate),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
