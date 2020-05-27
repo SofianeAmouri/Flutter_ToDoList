@@ -27,7 +27,7 @@ class DbHelper{
   static String tableTags = "tags";
   static String colLibelle = "libelle";
 
-  // Table associative Tags - Todo
+  // Table associative Tag_Todo
   static String tableTagTodo = "tagtodo";
   static String colFkTag = "fk_tag";
   //static String COL_FK_TODO = "fk_todo";

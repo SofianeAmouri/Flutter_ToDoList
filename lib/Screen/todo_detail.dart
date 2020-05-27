@@ -355,10 +355,6 @@ class TodoDetailState extends State<TodoDetail> {
     updateListItems();
   }
 
-  void _selectTag(){
-
-  }
-
   void uploadListTags(){
     final Future<Database> dbFuture = databaseHelper.initDatabase();
     dbFuture.then((database) {
@@ -409,7 +405,9 @@ class TodoDetailState extends State<TodoDetail> {
             color: Colors.white,
             elevation: 2.0,
             child: ListTile(
-              leading: Icon(Icons.label_outline, color: Theme.of(context).primaryColor),
+              leading: Checkbox(
+                value: this.listTags[position].isSelected,
+              ),
               title: Text(this.listAllTags[position].libelle,
                   style: TextStyle(fontWeight: FontWeight.bold)),
               trailing: Row(
@@ -423,10 +421,22 @@ class TodoDetailState extends State<TodoDetail> {
                   ),
                 ],
               ),
+              onTap: () {
+                //Permet la sélection d'un libellé
+                this.listTags.add(this.listAllTags[position]);
+
+
+                _selectTag();
+              },
             ),
           );
         },
       ),
     );
+  }
+
+
+  void _selectTag(){
+
   }
 }

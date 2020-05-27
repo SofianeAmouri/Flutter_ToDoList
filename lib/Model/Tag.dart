@@ -1,5 +1,3 @@
-import 'package:fluttertodolist/Model/TodoItem.dart';
-
 final String tableName = "tags";
 final String colId = 'id';
 final String colLibelle = 'libelle';
