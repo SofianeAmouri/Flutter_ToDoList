@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:fluttertodolist/Model/Tag.dart';
+import 'package:fluttertodolist/Model/TagTodo.dart';
 import 'package:fluttertodolist/Model/Todo.dart';
 import 'package:fluttertodolist/Model/TodoItem.dart';
 import 'package:path_provider/path_provider.dart';
@@ -146,6 +147,7 @@ class DbHelper{
   Future<int> deleteTodo(int id) async {
     var db = await this.database;
     int resTodoItem = await db.rawDelete('DELETE FROM $tableTodoItem WHERE $colFkTodo = $id'); // supprime tous les items liés à la tâche
+    int resTagTodo = await db.rawDelete('DELETE FROM $tableTagTodo WHERE $colFkTodo = $id'); // supprime tous les tags liés à la tâche
     int result = await db.rawDelete('DELETE FROM $tableTodo WHERE $colId = $id');
     return result;
   }
@@ -179,6 +181,7 @@ class DbHelper{
     for (int i = 0; i < count; i++) {
       todoList.add(Todo.fromMap(todoMapList[i]));
       todoList[i].listItems = await getTodoItemList(todoList[i].numId); // ajoute la liste des tâches à faire pour chaque tâche
+      todoList[i].listTags = await getTagTodoList(todoList[i].numId); // ajoute la liste des tags liés à la tâche
     }
 
     return todoList;
@@ -194,6 +197,14 @@ class DbHelper{
 
 //		var result = await db.rawQuery('SELECT * FROM $todoTable order by $colTitle ASC');
     var result = await db.query(tableTags);
+    return result;
+  }
+
+  Future<List<Map<String, dynamic>>> getTagMap(int id) async {
+    Database db = await this.database;
+
+    var result = await db.rawQuery('SELECT * FROM $tableTags WHERE $colId = $id');
+//    var result = await db.query(tableTodo);
     return result;
   }
 
@@ -240,6 +251,16 @@ class DbHelper{
     }
 
     return tagList;
+  }
+
+  // Récupère une tâche grâce à son nom
+  Future<Tag> getTagByID(int id) async {
+    var tagMapList = await getTagMap(id);
+    int count = tagMapList.length;
+
+    Tag tag = Tag.fromMap(tagMapList.last);
+
+    return tag;
   }
 
   /* ***********************************************
@@ -298,5 +319,68 @@ class DbHelper{
     }
 
     return todoItemList;
+  }
+
+  /* ***********************************************
+   *  *****             TABLE TagTodo              *****
+   *  ***********************************************/
+
+  // Fetch Operation: Get all todo objects from database
+  Future<List<Map<String, dynamic>>> getTagTodoMapList(int idTodo) async {
+    Database db = await this.database;
+
+    var result = await db.rawQuery('SELECT * FROM $tableTagTodo WHERE $colFkTodo = $idTodo');
+    //var result = await db.query(tableTodoItem);
+    return result;
+  }
+
+  // Insert Operation: Insert a tag object to database
+  Future<int> insertTagTodo(TagTodo tagTodo) async {
+    Database db = await this.database;
+    var result = await db.insert(tableTagTodo, tagTodo.toMap());
+    return result;
+  }
+
+  // Update Operation: Update a todo object and save it to database
+  Future<int> updateTagTodo(TagTodo tagTodo) async {
+    var db = await this.database;
+    var result = await db.update(tableTagTodo, tagTodo.toMap(), where: '$colId = ?', whereArgs: [tagTodo.numId]);
+    return result;
+  }
+
+
+  // Delete Operation: Delete a todo object from database
+  Future<int> deleteTagTodo(int idTag, int idTodo) async {
+    var db = await this.database;
+    int result = await db.rawDelete('DELETE FROM $tableTagTodo WHERE $colFkTag = $idTag AND $colFkTodo = $idTodo');
+    return result;
+  }
+
+  // Get number of todo objects in database
+  Future<int> getCountTagTodo() async {
+    Database db = await this.database;
+    List<Map<String, dynamic>> x = await db.rawQuery('SELECT COUNT (*) from $tableTagTodo');
+    int result = Sqflite.firstIntValue(x);
+    return result;
+  }
+
+  // Get the 'Map List' [ List<Map> ] and convert it to 'todo List' [ List<Todo> ]
+  Future<List<Tag>> getTagTodoList(int idTodo) async {
+
+    var tagTodoMapList = await getTagTodoMapList(idTodo);
+    int count = tagTodoMapList.length;
+
+    List<TagTodo> tagTodoList = List<TagTodo>();
+    List<Tag> tagList = List<Tag>();
+
+    for (int i = 0; i < count; i++) {
+      tagTodoList.add(TagTodo.fromMap(tagTodoMapList[i]));
+
+      // Récupère le tag grâce a l'id du lien entre tag et tâche
+      Tag tagMap = await getTagByID(tagTodoList[i].numIdTag);
+      tagList.add(tagMap);
+    }
+
+    return tagList;
   }
 }

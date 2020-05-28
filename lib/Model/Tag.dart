@@ -40,5 +40,6 @@ class Tag {
   Tag.fromMap(Map<String, dynamic> map) {
     this._numId = map[colId];
     this._libelle = map[colLibelle];
+    this._isSelected = false;
   }
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:fluttertodolist/Model/Tag.dart';
+import 'package:fluttertodolist/Model/TagTodo.dart';
 import 'package:fluttertodolist/Model/Todo.dart';
 import 'package:fluttertodolist/Model/TodoItem.dart';
 import 'package:fluttertodolist/db/DbHelper.dart';
@@ -28,8 +29,6 @@ class TodoDetailState extends State<TodoDetail> {
 
   String appBarTitle;
   Todo todo;
-  List<TodoItem> listItems;
-  List<Tag> listTags;
   List<Tag> listAllTags;
 
   TextEditingController titleController = TextEditingController();
@@ -44,16 +43,12 @@ class TodoDetailState extends State<TodoDetail> {
     TextStyle textStyle = Theme.of(context).textTheme.title;
 
     // Initialise les listes
-    this.listItems = List<TodoItem>();
-    this.listTags = List<Tag>();
     this.listAllTags = List<Tag>();
-    uploadListTags();
+    _uploadListTags();
 
     // Récupère les infos de la tâche
     titleController.text = todo.title;
     strEndDate = todo.endDate;
-    listItems = todo.listItems;
-    listTags = todo.listTags;
 
     // Mode édition pour gérer l'enregistrement dans la BD
     if(todo.numId == null) {
@@ -61,7 +56,7 @@ class TodoDetailState extends State<TodoDetail> {
     }
     else{
       bEditMode = true;
-      updateListItems();
+      _updateListTags();
     }
 
     return WillPopScope(
@@ -162,7 +157,7 @@ class TodoDetailState extends State<TodoDetail> {
                               if(addItemController.text.length > 0) {
                                 _addTodoItem(context, new TodoItem(addItemController.text));
                                 addItemController.clear();
-                                updateListItems();
+                                //updateListItems();
                               }
                             }
                         )
@@ -196,25 +191,6 @@ class TodoDetailState extends State<TodoDetail> {
                         },
                       ),
                     ),
-
-//                    Container(width: 5.0,),
-
-//                    Expanded(
-//                      child: RaisedButton(
-//                        color: Theme.of(context).primaryColor,
-//                        textColor: Colors.white,
-//                        child: Text(
-//                          'Supprimer',
-//                          textScaleFactor: 1.5,
-//                        ),
-//                        onPressed: () {
-//                          setState(() {
-//                            debugPrint("Delete button clicked");
-//                            _delete();
-//                          });
-//                        },
-//                      ),
-//                    ),
                   ],
                 ),
               ),
@@ -237,24 +213,17 @@ class TodoDetailState extends State<TodoDetail> {
     todo.endDate = strEndDate;
   }
 
-  // Met à jour la liste des tâches à faire
-  void updateListItems() {
-    setState(() {
-      this.listItems = todo.listItems;
-    });
-  }
-
   // ListView qui permet d'afficher la listes des tâches (items)
   ListView getListViewItems(){
     return ListView.builder(
-      itemCount: listItems.length,
+      itemCount: this.todo.listItems.length,
       itemBuilder: (BuildContext context, int position) {
         return Card(
           color: Colors.white,
           elevation: 2.0,
           child: ListTile(
             leading: Icon(Icons.chevron_right, color: Theme.of(context).primaryColor),
-            title: Text(this.listItems[position].name,
+            title: Text(this.todo.listItems[position].name,
                 style: TextStyle(fontWeight: FontWeight.bold)),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
@@ -268,7 +237,7 @@ class TodoDetailState extends State<TodoDetail> {
                 GestureDetector(
                   child: Icon(Icons.delete,color: Colors.red),
                   onTap: () {
-                    _deleteTodoItem(context, listItems[position], position);
+                    _deleteTodoItem(context, this.todo.listItems[position], position);
                   },
                 ),
               ],
@@ -291,14 +260,14 @@ class TodoDetailState extends State<TodoDetail> {
         result = await databaseHelper.insertTodo(todo);
       }
 
-      if(!bEditMode && this.listItems.length != 0){
+      if(!bEditMode && this.todo.listItems.length != 0){
         // récupère la tâche que l'on vient de créer pour avoir l'ID
         Todo todoDB = await databaseHelper.getTodoByTitle(todo.title);
         
         // Permet d'ajouter la liste des tâches à faire dans la BD
-        for(int i = 0; i < this.listItems.length; i++){
-          this.listItems[i].idTodo = todoDB.numId;
-          int resItems = await databaseHelper.insertTodoItem(this.listItems[i]);
+        for(int i = 0; i < this.todo.listItems.length; i++){
+          this.todo.listItems[i].idTodo = todoDB.numId;
+          int resItems = await databaseHelper.insertTodoItem(this.todo.listItems[i]);
         }
       }
 
@@ -312,22 +281,6 @@ class TodoDetailState extends State<TodoDetail> {
     }
   }
 
-  void _delete() async {
-    moveToLastScreen();
-
-    if (todo.numId == null) {
-      _showAlertDialog('Status', 'No Todo was deleted');
-      return;
-    }
-
-    int result = await databaseHelper.deleteTodo(todo.numId);
-    if (result != 0) {
-      _showAlertDialog('Status', 'Todo Deleted Successfully');
-    } else {
-      _showAlertDialog('Status', 'Error Occured while Deleting Todo');
-    }
-  }
-
   // Méthode qui permet de supprimer un item (une tâche à faire)
   void _deleteTodoItem(BuildContext context, TodoItem todoItem, int pos) async {
     if(bEditMode){
@@ -336,8 +289,10 @@ class TodoDetailState extends State<TodoDetail> {
         _showSnackBar(context, 'Item supprimé avec succès');
       }
     }
-    this.listItems.removeAt(pos);
-    updateListItems();
+    setState(() {
+      this.todo.listItems.removeAt(pos);
+    });
+    //updateListItems();
   }
 
   // Méthode qui permet d'ajouter un item (tâche à faire)
@@ -351,11 +306,14 @@ class TodoDetailState extends State<TodoDetail> {
         //_showSnackBar(context, 'Item ajouté avec succès');
       }
     }
-    todo.listItems.add(todoItem);
-    updateListItems();
+    setState(() {
+      todo.listItems.add(todoItem);
+    });
   }
 
-  void uploadListTags(){
+  // Méthode qui permet de récupérer la liste de tous les tags
+  void _uploadListTags(){
+    // Récupère tous les tags existants
     final Future<Database> dbFuture = databaseHelper.initDatabase();
     dbFuture.then((database) {
       Future<List<Tag>> tagsListFuture = databaseHelper.getTagsList();
@@ -363,6 +321,20 @@ class TodoDetailState extends State<TodoDetail> {
         this.listAllTags = tagList;
       });
     });
+  }
+
+  // Méthode qui permet d'initialiser les tags qui ont deja été sélectionné
+  void _updateListTags() {
+    // Permet de mettre le mode sélection sur les tags qui sont présent dans la tâche
+    for(int i = 0; i < this.todo.listTags.length; i++){
+      for(int y = 0; y < this.listAllTags.length; i++) {
+        if(this.listAllTags[y].libelle == this.todo.listTags[i].libelle){
+          this.listAllTags[y].isSelected = true;
+        } else {
+          this.listAllTags[y].isSelected = false;
+        }
+      }
+    }
   }
 
   void _showSnackBar(BuildContext context, String message) {
@@ -401,42 +373,106 @@ class TodoDetailState extends State<TodoDetail> {
       child: ListView.builder(
         itemCount: this.listAllTags.length,
         itemBuilder: (BuildContext context, int position) {
-          return Card(
-            color: Colors.white,
-            elevation: 2.0,
-            child: ListTile(
-              leading: Checkbox(
-                value: this.listTags[position].isSelected,
-              ),
-              title: Text(this.listAllTags[position].libelle,
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  GestureDetector(
-                    child: Icon(Icons.check_box_outline_blank, color: Colors.red),
-                    onTap: () {
-                      //_deleteTodoItem(context, listItems[position], position);
-                    },
-                  ),
-                ],
-              ),
-              onTap: () {
-                //Permet la sélection d'un libellé
-                this.listTags.add(this.listAllTags[position]);
+          return new TagTodoDetail(tag: this.listAllTags[position], todo: this.todo, bEditMode: this.bEditMode);
+        },
+      ),
+    );
+  }
+}
+
+class TagTodoDetail extends StatefulWidget {
+  final Tag tag;
+  final Todo todo;
+  final bool bEditMode;
+
+  @override
+  TagTodoState createState() => TagTodoState(tag, todo, bEditMode);
+  TagTodoDetail({Key key, @required this.tag, this.todo, this.bEditMode}) : super(key: key);
+
+}
+
+class TagTodoState extends State<TagTodoDetail> {
+  final Tag tag;
+  final Todo todo;
+  final bool bEditMode;
+
+  DbHelper databaseHelper = DbHelper();
+
+  TagTodoState(this.tag, this.todo, this.bEditMode);
+
+  @override
+  Widget build(BuildContext context) {
+
+    setState(() {
+      for(int i = 0; i < this.todo.listTags.length; i++){
+        if(this.todo.listTags[i].libelle == tag.libelle){
+          tag.isSelected = true;
+        }
+      }
+    });
 
 
-                _selectTag();
-              },
-            ),
-          );
+    return _getContent();
+  }
+
+  _getContent() {
+    return Card(
+      color: this.tag.isSelected ? Colors.white60 : Colors.white,
+      elevation: 2.0,
+      child: ListTile(
+        leading: Icon(Icons.chevron_right, color: Theme.of(context).primaryColor),
+        title: Text(this.tag.libelle,
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        onTap: () {
+          debugPrint("CARD TAG PRESSED");
+          setState(() {
+            if(this.tag.isSelected) {
+              _deleteTagTodo();
+            }
+            else {
+              _insertTagTodo();
+            }
+          });
         },
       ),
     );
   }
 
 
-  void _selectTag(){
+
+  _updateTagTodo(Tag tag){
 
   }
+
+  _insertTagTodo() async {
+    if(bEditMode){
+      int result = await databaseHelper.insertTagTodo(new TagTodo(this.tag.numId, this.todo.numId));
+      if(result != 0) {
+        debugPrint("INSERT TAG TODO");
+      }
+    }
+    setState(() {
+      this.tag.isSelected = true;
+      this.todo.listTags.add(this.tag);
+    });
+  }
+
+  _deleteTagTodo() async {
+    if(bEditMode) {
+      int result = await databaseHelper.deleteTagTodo(tag.numId, todo.numId);
+      if(result != 0) {
+        debugPrint("DELETE TAG TODO");
+      }
+    }
+    setState(() {
+      this.tag.isSelected = false;
+      for(int i = 0;i<this.todo.listTags.length;i++){
+        if(this.todo.listTags[i].libelle == this.tag.libelle){
+          this.todo.listTags.removeAt(i);
+          break;
+        }
+      }
+    });
+  }
+
 }

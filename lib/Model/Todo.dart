@@ -80,5 +80,7 @@ class Todo {
     this._endDate = map[colEndDate];
     this._imgPath = map[colImgPath];
     this._color = map[colBgColor];
+    this._listTags = new List<Tag>();
+    this._listItems = new List<TodoItem>();
   }
 }
