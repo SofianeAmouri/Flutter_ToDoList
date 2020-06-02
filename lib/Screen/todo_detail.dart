@@ -33,6 +33,7 @@ class TodoDetailState extends State<TodoDetail> {
 
   TextEditingController titleController = TextEditingController();
   TextEditingController addItemController = TextEditingController();
+  TextEditingController editItemController = TextEditingController();
   String strEndDate;
 
   TodoDetailState(this.todo, this.appBarTitle);
@@ -61,8 +62,9 @@ class TodoDetailState extends State<TodoDetail> {
 
     return WillPopScope(
 
+        // ignore: missing_return
         onWillPop: () {
-          // Write some code to control things, when user press Back navigation button in device navigationBar
+          // Ecrire un code pour contrôler les choses, lorsque l'utilisateur appuie sur le bouton de navigation arrière dans la barre de navigation de l'appareil
           moveToLastScreen();
         },
 
@@ -70,7 +72,8 @@ class TodoDetailState extends State<TodoDetail> {
           appBar: AppBar(
             title: Text(appBarTitle),
             leading: IconButton(icon: Icon(
-                Icons.arrow_back),
+                Icons.arrow_back
+            ),
                 onPressed: () {
                   moveToLastScreen();
                 }
@@ -88,7 +91,7 @@ class TodoDetailState extends State<TodoDetail> {
               IconButton(
                 icon: Icon(Icons.label_outline),
                 onPressed: () {
-                  _showSelectTags();
+                  _showAlertDialog();
                 },
               ),
             ],
@@ -186,7 +189,8 @@ class TodoDetailState extends State<TodoDetail> {
                         onPressed: () {
                           setState(() {
                             debugPrint("Save button clicked");
-                            _save();
+                            //_save();
+                            moveToLastScreen();
                           });
                         },
                       ),
@@ -201,6 +205,7 @@ class TodoDetailState extends State<TodoDetail> {
 
   void moveToLastScreen() {
     Navigator.pop(context, true);
+    _save();
   }
 
   // Met à jour le titre d'une tâche
@@ -232,6 +237,7 @@ class TodoDetailState extends State<TodoDetail> {
                   child: Icon(Icons.edit, color: Theme.of(context).primaryColor),
                   onTap: () {
                     // Bouton pour la modification
+                    _showEditTodoItem(context, this.todo.listItems[position]);
                   },
                 ),
                 GestureDetector(
@@ -251,7 +257,6 @@ class TodoDetailState extends State<TodoDetail> {
   // Save data to database
   void _save() async {
     if (titleController.text.length > 0) {
-      moveToLastScreen();
 
       int result;
       if (todo.numId != null) {  // Case 1: Update operation
@@ -269,15 +274,64 @@ class TodoDetailState extends State<TodoDetail> {
           this.todo.listItems[i].idTodo = todoDB.numId;
           int resItems = await databaseHelper.insertTodoItem(this.todo.listItems[i]);
         }
+
+        // Permet de lier les tags avec la liste de tâche
+        for(int i = 0; i < this.todo.listTags.length; i++){
+          int res = await databaseHelper.insertTagTodo(new TagTodo(this.todo.listTags[i].numId, todoDB.numId));
+        }
       }
 
       if (result != 0) {  // Success
-        _showAlertDialog('Status', 'Todo Saved Successfully');
+       // _showAlertDialog('Status', 'Todo Saved Successfully');
       } else {  // Failure
-        _showAlertDialog('Status', 'Problem Saving Todo');
+        //_showAlertDialog('Status', 'Problem Saving Todo');
       }
     } else {
-      _showAlertDialog("Status", "Veuillez saisir au minimum le titre pour sauvegarder.");
+      //_showAlertDialog("Status", "Veuillez saisir au minimum le titre pour sauvegarder.");
+    }
+  }
+
+  // Méthode qui permet la modification d'un item (une tâche à faire)
+  void _showEditTodoItem(BuildContext context, TodoItem todoItem){
+    editItemController.text = todoItem.name;
+    AlertDialog alertDialog = AlertDialog(
+      title: Text("Modifier l'élément"),
+      content: Container(
+          height: 100.0, // Change as per your requirement
+          width: 300.0, // Change as per your requirement
+          child: TextField(
+            controller: editItemController,
+            decoration: InputDecoration(
+                labelText: 'Modifier un élément...',
+                suffixIcon: IconButton(
+                    icon: Icon(Icons.edit),
+                    onPressed: (){
+                      setState(() {
+                        todoItem.name = editItemController.text;
+
+                        if(bEditMode)
+                          _updateItemTodo(todoItem);
+
+                        Navigator.pop(context);
+                      });
+
+                    }
+                )
+            ),
+          )
+      ),
+    );
+    showDialog(
+        context: context,
+        builder: (_) => alertDialog
+    );
+  }
+
+  // Méthode qui permet de mettre à jour l'élément
+  void _updateItemTodo(TodoItem todoItem) async {
+    int res = await databaseHelper.updateTodoItem(todoItem);
+    if (res != 0) {
+      //_showSnackBar(context, 'Item supprimé avec succès');
     }
   }
 
@@ -286,7 +340,7 @@ class TodoDetailState extends State<TodoDetail> {
     if(bEditMode){
       int result = await databaseHelper.deleteTodoItem(todoItem.numId);
       if (result != 0) {
-        _showSnackBar(context, 'Item supprimé avec succès');
+        //_showSnackBar(context, 'Item supprimé avec succès');
       }
     }
     setState(() {
@@ -342,19 +396,14 @@ class TodoDetailState extends State<TodoDetail> {
     Scaffold.of(context).showSnackBar(snackBar);
   }
 
-  void _showAlertDialog(String title, String message) {
+  // Méthode qui appel un AlertDialog pour modifier un item
+  void _showEditAlertDialog(String item) {
 
-    AlertDialog alertDialog = AlertDialog(
-      title: Text(title),
-      content: Text(message),
-    );
-    showDialog(
-        context: context,
-        builder: (_) => alertDialog
-    );
   }
 
-  void _showSelectTags() {
+
+  // Méthode qui appel un AlertDialog
+  void _showAlertDialog() {
     //uploadListTags();
     AlertDialog alertDialog = AlertDialog(
       title: Text("Libellés"),
@@ -366,6 +415,7 @@ class TodoDetailState extends State<TodoDetail> {
     );
   }
 
+  // Widget qui met en place une AlertDialog
   Widget setupAlertDialogTag() {
     return Container(
       height: 300.0, // Change as per your requirement
@@ -411,10 +461,10 @@ class TagTodoState extends State<TagTodoDetail> {
       }
     });
 
-
     return _getContent();
   }
 
+  // Card
   _getContent() {
     return Card(
       color: this.tag.isSelected ? Colors.white60 : Colors.white,
@@ -438,12 +488,7 @@ class TagTodoState extends State<TagTodoDetail> {
     );
   }
 
-
-
-  _updateTagTodo(Tag tag){
-
-  }
-
+  // Méthode qui permet d'ajouter un lien entre un libellé et une tâche
   _insertTagTodo() async {
     if(bEditMode){
       int result = await databaseHelper.insertTagTodo(new TagTodo(this.tag.numId, this.todo.numId));
@@ -457,6 +502,7 @@ class TagTodoState extends State<TagTodoDetail> {
     });
   }
 
+  // Méthode qui permet de supprimer le lien entre un libellé et une tâche
   _deleteTagTodo() async {
     if(bEditMode) {
       int result = await databaseHelper.deleteTagTodo(tag.numId, todo.numId);

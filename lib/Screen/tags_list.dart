@@ -77,7 +77,8 @@ class TagsListState extends State<TagsList> {
           child: ListTile(
             leading: Icon(Icons.label_outline ,color: Theme.of(context).primaryColor,),
             title: Text(this.tagsList[position].libelle,
-                style: TextStyle(fontWeight: FontWeight.bold)),
+                style: TextStyle(fontWeight: FontWeight.bold)
+            ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
@@ -108,7 +109,7 @@ class TagsListState extends State<TagsList> {
   void _delete(BuildContext context, Tag tag) async {
     int result = await databaseHelper.deleteTag(tag.numId);
     if (result != 0) {
-      _showSnackBar(context, 'Libellé supprimé avec succès');
+      //_showSnackBar(context, 'Libellé supprimé avec succès');
       updateListView();
     }
   }
@@ -116,7 +117,7 @@ class TagsListState extends State<TagsList> {
   void _add(BuildContext context, Tag tag) async {
     int result = await databaseHelper.insertTag(tag);
     if (result != 0) {
-      _showSnackBar(context, 'Libellé ajouté avec succès');
+      //_showSnackBar(context, 'Libellé ajouté avec succès');
       updateListView();
     }
   }
