@@ -15,6 +15,7 @@ class TagsListState extends State<TagsList> {
   DbHelper databaseHelper = DbHelper();
 
   TextEditingController tagController = new TextEditingController();
+  TextEditingController editTagController = new TextEditingController();
 
   List<Tag> tagsList;
   int count = 0;
@@ -86,6 +87,7 @@ class TagsListState extends State<TagsList> {
                   child: Icon(Icons.edit, color: Theme.of(context).primaryColor),
                   onTap: () {
                     //Action pour la modification
+                    _showEditTodoItem(context, this.tagsList[position]);
                   },
                 ),
                 GestureDetector(
@@ -104,6 +106,48 @@ class TagsListState extends State<TagsList> {
 
   void moveToLastScreen() {
     Navigator.pop(context, true);
+  }
+
+  // Méthode qui permet la modification d'un tag
+  void _showEditTodoItem(BuildContext context, Tag tag){
+    editTagController.text = tag.libelle;
+    AlertDialog alertDialog = AlertDialog(
+      title: Text("Modification d'un libellé"),
+      content: Container(
+          height: 100.0, // Change as per your requirement
+          width: 300.0, // Change as per your requirement
+          child: TextField(
+            controller: editTagController,
+            decoration: InputDecoration(
+                labelText: 'Modifier un libellé...',
+                suffixIcon: IconButton(
+                    icon: Icon(Icons.edit),
+                    onPressed: (){
+                      setState(() {
+                        tag.libelle = editTagController.text;
+                        _updateTag(tag);
+
+                        Navigator.pop(context);
+                      });
+
+                    }
+                )
+            ),
+          )
+      ),
+    );
+    showDialog(
+        context: context,
+        builder: (_) => alertDialog
+    );
+  }
+
+  // Méthode qui permet de mettre à jour un tag
+  void _updateTag(Tag tag) async {
+    int res = await databaseHelper.updateTag(tag);
+    if (res != 0) {
+      //_showSnackBar(context, 'Item supprimé avec succès');
+    }
   }
 
   void _delete(BuildContext context, Tag tag) async {
